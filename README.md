@@ -11,3 +11,6 @@ Using a Wemos D1 with ESP8266 to capture raw or filtered packets from a wireless
 # TODO
 * Add pcap support
 * Send the data obtained in pcap standard via serial port
+
+# Note
+<b>Due to the limitations of the ESP8266 it is possible that memory management exceptions may occur.</b>
