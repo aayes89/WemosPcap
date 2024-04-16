@@ -7,68 +7,68 @@ import signal
 import platform
 import serial.tools.list_ports
 
-def detectar_sistema_operativo():
+def myOs():
     return platform.system()
 
-def listar_puertos():
-    sistema = detectar_sistema_operativo()
-    if sistema == "Windows":
-        print("El código se está ejecutando en Windows.")
-        print("Puertos COM disponibles:")
-        for puerto in serial.tools.list_ports.comports():
-            print(puerto.device)
-    elif sistema == "Darwin":
-        print("El código se está ejecutando en macOS.")
-        for puerto in serial.tools.list_ports.comports():
-            print(puerto.device)
-    elif sistema == "Linux":
-        print("El código se está ejecutando en Linux.")
-        for puerto in serial.tools.list_ports.comports():
-            print(puerto.device)
+def port_list():
+    systm = myOs()
+    if systm == "Windows":
+        print("You are running on Windows.")
+        print("Available COM ports:")
+        for port in serial.tools.list_ports.comports():
+            print(port.device)
+    elif systm == "Darwin":
+        print("You are running on macOS.")
+        for port in serial.tools.list_ports.comports():
+            print(port.device)
+    elif systm == "Linux":
+        print("You are running on Linux.")
+        for port in serial.tools.list_ports.comports():
+            print(port.device)
     else:
-        print("Sistema operativo no reconocido.")
+        print("Unknow OS")
 
-def conectar_puerto(puerto):
+def connect(port):
     try:
-        ser = serial.Serial(puerto, baudrate=115200)
-        print(f"Conectado al puerto {puerto}")
+        ser = serial.Serial(port, baudrate=115200)
+        printf"Connecting to {puerto}")
         return ser
     except serial.SerialException as e:
-        print(f"No se pudo conectar al puerto {puerto}: {e}")
+        print(f"Can't connect to {puerto}: {e}")
         return None
     
-def obtener_nombre_archivo():
+def getFilename():
     try:
-        nombre_archivo = input("[?] Seleccione un nombre de archivo (por defecto 'capture.pcap'): ")
-        if nombre_archivo == "":
-            nombre_archivo = "capture.pcap"
-        return nombre_archivo
+        filename = input("[?] Type a  filename (by default: 'capture.pcap'): ")
+        if filename == "":
+            filename = "capture.pcap"
+        return filename
     except KeyboardInterrupt:
-        print("\n[+] Saliendo...")
+        print("\n[+] Closing...")
         exit()
 
-def iniciar_wireshark(filename):
+def start_wireshark(filename):
     print("Starting up Wireshark...")
     cmd = f"tail -f -c +0 {filename} | wireshark -k -i {filename}"
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
     return p
 
 def main():
-    listar_puertos()
-    puerto_seleccionado = input("Seleccione el puerto al que desea conectarse: ")
-    ser = conectar_puerto(puerto_seleccionado)
+    port_list()
+    selected_port = input("Select the Serial Port: ")
+    ser = connect(selected_port)
     if ser:
-        nombre_archivo = obtener_nombre_archivo()
+       fname = getFilename()
         try:
             counter = 0
-            with open(nombre_archivo, 'wb') as f:
+            with open(fname, 'wb') as f:
                 check = 0
                 while check == 0:
                     line = ser.readline()
                     if b"<<START>>" in line:
                         check = 1
                     print("Stream started...")
-                    p = iniciar_wireshark(nombre_archivo)
+                    p = start_wireshark(fname)
                     while True:
                         ch = ser.read()
                         f.write(ch)
@@ -78,7 +78,7 @@ def main():
             try:
                 os.killpg(os.getpgid(p.pid), signal.SIGTERM)
             except ProcessLookupError:
-                print("El proceso ya ha sido terminado.")
+                print("Proccess stoped.")
         finally:
             ser.close()
             print("Done.")
