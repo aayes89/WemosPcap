@@ -1,3 +1,4 @@
+# Made by Slam 2024
 import serial
 import io
 import os
@@ -47,7 +48,7 @@ def obtener_nombre_archivo():
         exit()
 
 def iniciar_wireshark(filename):
-    print("[+] Starting up Wireshark...")
+    print("Starting up Wireshark...")
     cmd = f"tail -f -c +0 {filename} | wireshark -k -i {filename}"
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
     return p
@@ -66,7 +67,7 @@ def main():
                     line = ser.readline()
                     if b"<<START>>" in line:
                         check = 1
-                    print("[+] Stream started...")
+                    print("Stream started...")
                     p = iniciar_wireshark(nombre_archivo)
                     while True:
                         ch = ser.read()
@@ -80,7 +81,7 @@ def main():
                 print("El proceso ya ha sido terminado.")
         finally:
             ser.close()
-            print("[+] Done.")
+            print("Done.")
 
 if __name__ == "__main__":
     main()
