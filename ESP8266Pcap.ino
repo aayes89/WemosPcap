@@ -5,7 +5,7 @@ const char *essid = "ESSID";
 const char *passwd = "essid_password";
 unsigned int channel = 1;
 
-void promiscue_filtered(uint8_t *buf, uint16_t len) {
+void promisc_filtered(uint8_t *buf, uint16_t len) {
   signed power;
   if (len == 12) {
     power = buf[0]; // rssi
@@ -24,7 +24,7 @@ void promiscue_filtered(uint8_t *buf, uint16_t len) {
   }
 }
 
-void promiscue_mode(uint8_t *buf, uint16_t len) {
+void promisc_mode(uint8_t *buf, uint16_t len) {
   for (int i = 0; i < len; i++) {
     Serial.printf("%02x ", buf[i]); // byte to hexadecimal
   }
@@ -56,9 +56,9 @@ void setup() {
   
   int opc = 1;//Serial.read();
   if(opc == 1){
-    wifi_set_promiscuous_rx_cb(promiscue_mode);
+    wifi_set_promiscuous_rx_cb(promisc_mode);
   }else if(opc == 2){
-    wifi_set_promiscuous_rx_cb(promiscue_filtered);
+    wifi_set_promiscuous_rx_cb(promisc_filtered);
   }
  
 }
