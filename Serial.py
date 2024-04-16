@@ -50,6 +50,7 @@ def getFilename():
 def start_wireshark(filename):
     print("Starting up Wireshark...")
     cmd = f"tail -f -c +0 {filename} | wireshark -k -i {filename}"
+# subprocess.run(cmd, shell=True)
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
     return p
 
