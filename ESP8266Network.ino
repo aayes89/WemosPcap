@@ -126,19 +126,19 @@ void promiscue(uint8_t *buf, uint16_t len) {
 }
 
 void send_pcap_packet(uint8_t *data, uint16_t len) {
-  // Create pcap header
-  static pcap_hdr pcap_header;  // Declare pcap_hdr as static for one-time initialization
-  static bool header_sent = false;  // Flag to track if header has been sent
+  // Crea la cabecera pcap
+  static pcap_hdr pcap_header;  // Para inicialización de una vez declara pcap_hdr 
+  static bool header_sent = false;  // Bandera de chequeo de una vez
 
-  // Initialize pcap header on first call
+  // Inicializa la cabecera pcap
   if (!header_sent) {
     pcap_header.magic_number = 0xA1B2C3D4;
     pcap_header.version_major = 2;
     pcap_header.version_minor = 4;
     pcap_header.thisdump_ts_sec = get_timestamp_seconds();
     pcap_header.thisdump_ts_usec = get_timestamp_microseconds();
-    pcap_header.roundup = 0;  // Not necessary for serial transmission
-    pcap_header.sig_nets = 1;  // Assuming Ethernet network (modify if needed)
+    pcap_header.roundup = 0;  // Opcional para la transmisión por serial
+    pcap_header.sig_nets = 1;  // Se asume que la red es Ethernet (cambiar en caso contrario)
     header_sent = true;
     Serial.write((uint8_t *)&pcap_header, sizeof(pcap_header));
   }
@@ -197,14 +197,13 @@ void setup() {
   Serial.println("2. Modo promiscuo filtrado");
   Serial.println("3. Enviar a Wireshark por Serial");
   
-  // Quitar comentarios debajo para esperar por ingreso de datos
-  /*while (!Serial.available()) { 
-    delay(100); // Check every 100 milliseconds for input
-  }*/
+  // Espera por el ingreso de datos
+  while (!Serial.available()) { 
+    delay(100); // Cada 100 milisegundos espera por datos 
+  }
 
-  // Lee los datos Serial, actualmente prefijado para opcion 3
-  // Quitar comentarios si desea habilitar la selección 
-  int opc = 3;//Serial.read() - '0'; 
+  // Lee los datos Serial
+  int opc = Serial.read() - '0'; 
   if(opc == 1){
     wifi_set_promiscuous_rx_cb(promiscue);
   }else if(opc == 2){
@@ -212,7 +211,6 @@ void setup() {
   }else if(opc == 3){
     wifi_set_promiscuous_rx_cb(send_pcap_packet);
   }else Serial.println("Opcion incorrecta");
-  //}
 }
 
 void loop() {
