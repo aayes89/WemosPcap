@@ -94,7 +94,7 @@ void promisc_cb(uint8_t *buf, uint16_t len) {
     for (int i = longitudEncabezado; i < len; i++) {
       Serial.printf("%02X ", buf[i]); // Mostrar cada byte de datos en formato hexadecimal
     }
-    Serial.println("------ Fin del paquete TCP ------\n");
+    Serial.println("\n------ Fin del paquete TCP ------\n");
   }
 }
 
