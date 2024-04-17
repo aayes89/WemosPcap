@@ -1,7 +1,25 @@
 #include <ESP8266WiFi.h>
 
-const char *ssidEstacion = "essid";
-const char *passwordEstacion = "password";
+// Referencia: https://www.acrylicwifi.com/blog/pcap-wifi-captura-almacenamiento-trafico-wireless-windows/
+struct pcap_hdr {
+  uint32_t magic_number;  // Numero mágico 0xA1B2C3D4
+  uint16_t version_major;  // Número de versión Mayor (ej.: 2)
+  uint16_t version_minor;  // Número de versión Menor (ej.: 4)
+  uint32_t thisdump_ts_sec; // Marca de tiempo de volcado (segundos)
+  uint32_t thisdump_ts_usec; // Marca de tiempo de volcado (microsegundos)
+  uint32_t roundup;  // Cantidad para redondear las longitudes de los paquetes 
+  uint32_t sig_nets;  // Firma de la red (ej.: Ethernet)
+} __attribute__((packed));
+
+struct pcap_pkthdr {
+  uint32_t ts_sec;  // Marca de tiempo en segundos
+  uint32_t ts_usec;  // Marca de tiempo en microsegundos
+  uint32_t caplen;  // Longitud de captura (tamaño actual del paquete)
+  uint32_t len;  // Longitud de captura original (puede estar truncada)
+} __attribute__((packed));
+
+const char *ssidEstacion = "ap_essid";
+const char *passwordEstacion = "ap_password";
 unsigned int channel = 1;
 
 void promisc_cb(uint8_t *buf, uint16_t len) {
@@ -11,6 +29,7 @@ void promisc_cb(uint8_t *buf, uint16_t len) {
   }
   
   // Analizar los campos del encabezado TCP
+  // Referencia: https://es.wikipedia.org/wiki/Segmento_TCP
   uint16_t puertoOrigen = (buf[0] << 8) | buf[1];
   uint16_t puertoDestino = (buf[2] << 8) | buf[3];
   uint32_t numeroSecuencia = (buf[4] << 24) | (buf[5] << 16) | (buf[6] << 8) | buf[7];
@@ -94,7 +113,7 @@ void promisc_cb(uint8_t *buf, uint16_t len) {
     for (int i = longitudEncabezado; i < len; i++) {
       Serial.printf("%02X ", buf[i]); // Mostrar cada byte de datos en formato hexadecimal
     }
-    Serial.println("\n------ Fin del paquete TCP ------\n");
+    Serial.println("\n------ Fin del paquete TCP ------");
   }
 }
 
@@ -104,6 +123,54 @@ void promiscue(uint8_t *buf, uint16_t len) {
     Serial.printf("%02x ", buf[i]); // Imprime cada byte del paquete en formato hexadecimal
   }
   Serial.println(); // Imprime una nueva línea para separar cada paquete
+}
+
+void send_pcap_packet(uint8_t *data, uint16_t len) {
+  // Create pcap header
+  static pcap_hdr pcap_header;  // Declare pcap_hdr as static for one-time initialization
+  static bool header_sent = false;  // Flag to track if header has been sent
+
+  // Initialize pcap header on first call
+  if (!header_sent) {
+    pcap_header.magic_number = 0xA1B2C3D4;
+    pcap_header.version_major = 2;
+    pcap_header.version_minor = 4;
+    pcap_header.thisdump_ts_sec = get_timestamp_seconds();
+    pcap_header.thisdump_ts_usec = get_timestamp_microseconds();
+    pcap_header.roundup = 0;  // Not necessary for serial transmission
+    pcap_header.sig_nets = 1;  // Assuming Ethernet network (modify if needed)
+    header_sent = true;
+    Serial.write((uint8_t *)&pcap_header, sizeof(pcap_header));
+  }
+
+  // Crea la cabecera pcap
+  pcap_pkthdr pkthdr;
+  pkthdr.ts_sec = get_timestamp_seconds();
+  pkthdr.ts_usec = get_timestamp_microseconds();
+  pkthdr.caplen = len;
+  pkthdr.len = len;
+
+  // Envia la cabecera pcap
+  Serial.write((uint8_t *)&pkthdr, sizeof(pkthdr));
+
+  // Envia los datos
+  Serial.write(data, len);
+}
+
+void close_pcap_file() {
+  // Completar si lo deseas (opcional)
+}
+
+unsigned long get_timestamp_seconds() {
+  // Reemplazar con el tiempo que se ajuste a tus necesidades en caso de requerirlo
+  unsigned long milliseconds = millis();
+  return milliseconds / 1000;
+}
+
+unsigned long get_timestamp_microseconds() {
+  // Reemplazar con el tiempo que se ajuste a tus necesidades en caso de requerirlo
+  unsigned long milliseconds = millis();
+  return milliseconds % 1000 * 1000;
 }
 
 
@@ -126,23 +193,32 @@ void setup() {
   wifi_set_channel(channel);
   wifi_promiscuous_enable(1);
   Serial.println("Seleccione el modo de captura: ");
-  Serial.println("1. Modo promiscuo");
+  Serial.println("1. Modo promiscuo sin formato");
   Serial.println("2. Modo promiscuo filtrado");
-  //if(Serial.available()){
-  int opc = 2;//Serial.read();
+  Serial.println("3. Enviar a Wireshark por Serial");
+  
+  // Quitar comentarios debajo para esperar por ingreso de datos
+  /*while (!Serial.available()) { 
+    delay(100); // Check every 100 milliseconds for input
+  }*/
+
+  // Lee los datos Serial, actualmente prefijado para opcion 3
+  // Quitar comentarios si desea habilitar la selección 
+  int opc = 3;//Serial.read() - '0'; 
   if(opc == 1){
     wifi_set_promiscuous_rx_cb(promiscue);
   }else if(opc == 2){
     wifi_set_promiscuous_rx_cb(promisc_cb);
+  }else if(opc == 3){
+    wifi_set_promiscuous_rx_cb(send_pcap_packet);
   }else Serial.println("Opcion incorrecta");
   //}
 }
 
 void loop() {
-  channel = 1;
-  while (true) {
-    if (++channel == 15) break; // Only scan channels 1 to 14
+    if (++channel == 15){ 
+      channel = 1; // Canales del 1 al 14
+    }
     wifi_set_channel(channel);
-    delay(1); // Critical processing timeslice for NONOS SDK! No delay(0) yield()
-  }
+    delay(1);
 }
